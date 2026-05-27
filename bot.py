@@ -1,295 +1,338 @@
 import os
 import re
-import sys
 import asyncio
-import requests
 import subprocess
-
-import bot as helper
-
-from utils import progress_bar
-from vars import API_ID, API_HASH, BOT_TOKEN, WEBHOOK, PORT
-
-from aiohttp import ClientSession, web
-from pyromod import listen
+from aiohttp import web
 
 from pyrogram import Client, filters
 from pyrogram.types import (
     Message,
-    InlineKeyboardButton,
-    InlineKeyboardMarkup
+    InlineKeyboardMarkup,
+    InlineKeyboardButton
 )
 
-from style import Ashu
-from utk import get_utkarsh_cdn
+from pyromod import listen
+
+# =========================
+# VARIABLES
+# =========================
+
+API_ID = int(os.getenv("API_ID"))
+API_HASH = os.getenv("API_HASH")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+
+PORT = int(os.getenv("PORT", 8080))
+WEBHOOK = os.getenv("WEBHOOK", "False")
 
 COOKIES_FILE = "cookies.txt"
 
+# =========================
+# BOT CLIENT
+# =========================
+
 bot = Client(
-    "bot",
+    "AdvancedLeechBot",
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN
 )
 
+# =========================
+# WEB SERVER
+# =========================
+
 routes = web.RouteTableDef()
 
-@routes.get("/", allow_head=True)
-async def root_route_handler(request):
+@routes.get("/")
+async def root(request):
 
-    return web.json_response(
-        "Leech Bot Running"
+    return web.Response(
+        text="🔥 Bot Running Successfully"
     )
 
 async def web_server():
 
-    web_app = web.Application(
+    app = web.Application(
         client_max_size=30000000
     )
 
-    web_app.add_routes(routes)
+    app.add_routes(routes)
 
-    return web_app
+    runner = web.AppRunner(app)
 
-@bot.on_message(filters.command(["start"]))
-async def start_command(bot: Client, m: Message):
+    await runner.setup()
 
-    await m.reply_text(
-        Ashu.START_TEXT,
-        reply_markup=InlineKeyboardMarkup(
-            [
-                [
-                    InlineKeyboardButton(
-                        "✜ Powerful Leech Bot ✜",
-                        url="https://t.me/example"
-                    )
-                ]
-            ]
-        )
+    site = web.TCPSite(
+        runner,
+        "0.0.0.0",
+        PORT
     )
 
-@bot.on_message(filters.command("cookies"))
-async def cookies_handler(bot: Client, m: Message):
+    await site.start()
 
-    await m.reply_text(
+# =========================
+# START COMMAND
+# =========================
+
+@bot.on_message(filters.command("start"))
+async def start_handler(client, message: Message):
+
+    txt = """
+🔥 Advanced Leech Bot Ready
+
+✅ TXT Support
+✅ MP4 Support
+✅ PDF Support
+✅ Cookies Support
+✅ Railway Hosting
+"""
+
+    buttons = InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton(
+                    "⚡ Advanced Bot ⚡",
+                    url="https://t.me/example"
+                )
+            ]
+        ]
+    )
+
+    await message.reply_text(
+        txt,
+        reply_markup=buttons
+    )
+
+# =========================
+# COOKIES COMMAND
+# =========================
+
+@bot.on_message(filters.command("cookies"))
+async def cookies_handler(client, message: Message):
+
+    ask = await message.reply_text(
         "📂 Send Cookies TXT File"
     )
 
     cookie_msg: Message = await bot.listen(
-        m.chat.id
+        message.chat.id
     )
 
     if not cookie_msg.document:
 
-        return await m.reply_text(
+        return await ask.edit(
             "❌ Invalid File"
         )
 
+    if not cookie_msg.document.file_name.endswith(".txt"):
+
+        return await ask.edit(
+            "❌ Send TXT File Only"
+        )
+
     await cookie_msg.download(
-        file_name="cookies.txt"
+        file_name=COOKIES_FILE
     )
 
-    await m.reply_text(
+    await ask.edit(
         "✅ Cookies Saved Successfully"
     )
 
-@bot.on_message(filters.command(["upload"]))
-async def upload_command(bot: Client, m: Message):
+# =========================
+# UPLOAD COMMAND
+# =========================
 
-    editable = await m.reply_text(
+@bot.on_message(filters.command("upload"))
+async def upload_handler(client, message: Message):
+
+    editable = await message.reply_text(
         "📂 Send TXT File"
     )
 
     input_msg: Message = await bot.listen(
-        editable.chat.id
+        message.chat.id
     )
 
-    x = await input_msg.download()
+    if not input_msg.document:
 
-    await input_msg.delete(True)
+        return await editable.edit(
+            "❌ TXT File Required"
+        )
+
+    if not input_msg.document.file_name.endswith(".txt"):
+
+        return await editable.edit(
+            "❌ Send TXT File Only"
+        )
+
+    txt_path = await input_msg.download()
+
+    # =========================
+    # READ LINKS
+    # =========================
 
     try:
 
         with open(
-            x,
+            txt_path,
             "r",
             encoding="utf-8"
         ) as f:
 
-            content = f.read().splitlines()
+            content = f.read()
 
-        links = []
-
-        for i in content:
-
-            if "://" in i:
-
-                links.append(
-                    i.split("://", 1)
-                )
-
-        os.remove(x)
-
-    except Exception:
-
-        await m.reply_text(
-            "❌ Invalid TXT File"
+        urls = re.findall(
+            r'https?://\S+',
+            content
         )
 
-        return
+        os.remove(txt_path)
 
-    total_links = len(links)
+    except Exception as e:
+
+        return await editable.edit(
+            f"❌ TXT Read Error\n{str(e)}"
+        )
+
+    if not urls:
+
+        return await editable.edit(
+            "❌ No Links Found"
+        )
+
+    total = len(urls)
 
     await editable.edit(
-        f"📄 Total Links Found : {total_links}"
+        f"✅ {total} Links Found"
     )
 
-    count = 1
+    # =========================
+    # LOOP LINKS
+    # =========================
 
-    for i in range(len(links)):
+    for index, url in enumerate(urls, start=1):
 
         try:
 
-            V = links[i][1]
-            url = "https://" + V
-
-            if "utkarsh" in url:
-                url = get_utkarsh_cdn(url)
-
-            raw_title = links[i][0]
-
-            name1 = re.sub(
-                r'[^a-zA-Z0-9 _.-]',
-                '',
-                raw_title
-            ).strip()
-
-            current_number = str(
-                count
-            ).zfill(3)
-
-            name = (
-                f"{current_number}_{name1}"
+            await message.reply_text(
+                f"⬇️ Downloading {index}/{total}"
             )
 
-            cc = f"🎬 {name1}"
-
-            progress_msg = await m.reply_text(
-                f"⬇️ Downloading {name1}"
-            )
+            # =========================
+            # PDF DOWNLOAD
+            # =========================
 
             if ".pdf" in url.lower():
 
-                pdf_name = f"{name}.pdf"
+                pdf_name = f"PDF_{index}.pdf"
 
-                pdf_cmd = f'''yt-dlp \
-                --cookies cookies.txt \
-                --retries 25 \
-                -o "{pdf_name}" \
-                "{url}" '''
-
-                subprocess.run(
-                    pdf_cmd,
-                    shell=True
+                pdf_cmd = (
+                    f'curl -L "{url}" '
+                    f'-o "{pdf_name}"'
                 )
+
+                process = await asyncio.create_subprocess_shell(
+                    pdf_cmd
+                )
+
+                await process.communicate()
 
                 if os.path.exists(pdf_name):
 
-                    await bot.send_document(
-                        chat_id=m.chat.id,
+                    await message.reply_document(
                         document=pdf_name,
-                        caption=cc
+                        caption=f"📄 PDF {index}"
                     )
 
                     os.remove(pdf_name)
 
+                else:
+
+                    await message.reply_text(
+                        f"❌ PDF Failed {index}"
+                    )
+
+            # =========================
+            # VIDEO DOWNLOAD
+            # =========================
+
             else:
 
-                cmd = f'''yt-dlp \
-                --cookies cookies.txt \
-                --external-downloader aria2c \
-                --downloader-args "aria2c:-x 16 -j 16 -s 16 -k 1M" \
-                --retries 25 \
-                -o "{name}.mp4" \
-                "{url}" '''
+                video_name = f"Video_{index}.mp4"
 
-                process = await asyncio.create_subprocess_shell(cmd)
+                cmd = (
+                    f'yt-dlp '
+                    f'--cookies cookies.txt '
+                    f'--retries 20 '
+                    f'-f mp4 '
+                    f'-o "{video_name}" '
+                    f'"{url}"'
+                )
+
+                process = await asyncio.create_subprocess_shell(
+                    cmd
+                )
 
                 await process.communicate()
 
-                filename = f"{name}.mp4"
+                if os.path.exists(video_name):
 
-                if os.path.exists(filename):
+                    size = os.path.getsize(video_name)
 
-                    await bot.send_video(
-                        chat_id=m.chat.id,
-                        video=filename,
-                        caption=cc
+                    # 49MB Limit
+                    if size > 49 * 1024 * 1024:
+
+                        await message.reply_text(
+                            f"⚠️ File Too Large\n{video_name}"
+                        )
+
+                        os.remove(video_name)
+
+                    else:
+
+                        await message.reply_video(
+                            video=video_name,
+                            caption=f"🎬 Video {index}"
+                        )
+
+                        os.remove(video_name)
+
+                else:
+
+                    await message.reply_text(
+                        f"❌ Video Failed {index}"
                     )
-
-                    os.remove(filename)
-
-            count += 1
-
-            try:
-                await progress_msg.delete()
-            except:
-                pass
 
         except Exception as e:
 
-            await m.reply_text(
-                f"❌ Error : {str(e)}"
+            await message.reply_text(
+                f"❌ Error On Link {index}\n\n{str(e)}"
             )
 
-    await m.reply_text(
-        "✅ Successfully Done"
+    await message.reply_text(
+        "✅ All Downloads Completed"
     )
+
+# =========================
+# MAIN FUNCTION
+# =========================
 
 async def main():
 
-    if WEBHOOK:
+    print("🚀 Bot Started")
 
-        app = await web_server()
+    await web_server()
 
-        runner = web.AppRunner(app)
+    await bot.start()
 
-        await runner.setup()
+    print("✅ Bot Running")
 
-        site = web.TCPSite(
-            runner,
-            "0.0.0.0",
-            PORT
-        )
+    await asyncio.Event().wait()
 
-        await site.start()
+# =========================
+# RUN
+# =========================
 
 if __name__ == "__main__":
 
-    print("🚀 Bot Started")
-
-    async def start_bot():
-
-        await bot.start()
-
-    async def start_web():
-
-        await main()
-
-    loop = asyncio.get_event_loop()
-
-    try:
-
-        loop.create_task(start_bot())
-
-        loop.create_task(start_web())
-
-        loop.run_forever()
-
-    except KeyboardInterrupt:
-
-        pass
-
-    finally:
-
-        loop.stop()
+    asyncio.run(main())
