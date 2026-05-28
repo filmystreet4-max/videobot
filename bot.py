@@ -1,13 +1,11 @@
 import os
 import re
 import asyncio
+import subprocess
+
 from pyromod import Client
-from pyrogram import filters 
-    Message,
-    InlineKeyboardMarkup,
-    InlineKeyboardButton,
-    CallbackQuery
-)
+from pyrogram import filters
+from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 
 # =========================
 # VARIABLES
