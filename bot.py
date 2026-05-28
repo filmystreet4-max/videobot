@@ -1,8 +1,8 @@
 import os
 import re
 import asyncio
-from pyrogram import Client, filters
-from pyrogram.types import (
+from pyromod import Client
+from pyrogram import filters (
     Message,
     InlineKeyboardMarkup,
     InlineKeyboardButton,
