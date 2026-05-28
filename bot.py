@@ -73,7 +73,7 @@ async def txt_handler(client, message: Message):
 
                 filename = f"PDF_{count}.pdf"
 
-                cmd = f'yt-dlp -o "{filename}" "{url}"'
+                cmd = f'yt-dlp --cookies cookies.txt -o "{filename}" "{url}"'
 
                 process = await asyncio.create_subprocess_shell(cmd)
 
