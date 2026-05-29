@@ -133,5 +133,5 @@ async def txt_command(client, message: Message):
 📊 **Details Saved!**
 
 **Batch:** {batch_name}
-**Topic:** {
+**Topic:** {topic_name}
     
