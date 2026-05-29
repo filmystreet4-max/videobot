@@ -107,7 +107,6 @@ async def txt_command(client, message: Message):
         "extract_by": extract_by
     }
 
-    # Best Quality button added here
     buttons = InlineKeyboardMarkup(
         [
             [
@@ -134,4 +133,52 @@ async def txt_command(client, message: Message):
 
 **Batch:** {batch_name}
 **Topic:** {topic_name}
+**By:** {extract_by}
+
+📺 **Video Quality Select Karo:**
+""", 
+        reply_markup=buttons
+    )
+
+# =========================
+# DOWNLOAD CORE
+# =========================
+
+@bot.on_callback_query()
+async def callback_handler(client, callback_query: CallbackQuery):
+    await callback_query.answer("Processing Batch...", show_alert=False)
+    
+    quality = callback_query.data
+    chat_id = callback_query.message.chat.id
+    data = USER_DATA.get(chat_id)
+
+    if not data:
+        return await callback_query.message.edit_text("❌ **Session expired. Please send /txt again.**")
+
+    STOP_DOWNLOAD[chat_id] = False
+    
+    quality_text = "Best" if quality == "best" else f"{quality}p"
+    await callback_query.message.edit_text(f"✅ **Started Processing in {quality_text} Quality...**")
+
+    with open(data["txt_path"], "r", encoding="utf-8") as f:
+        lines = f.readlines()
+
+    videos = []
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        match = re.search(r'(.*?)(https?://\S+)', line)
+        if match:
+            v_title = match.group(1).strip(' :|-')
+            v_url = match.group(2)
+            if not v_title:
+                v_title = "No Title Found"
+            videos.append((v_title, v_url))
+
+    if not videos:
+        return await bot.send_message(chat_id, "❌ **No valid links found in the TXT file.**")
+
+    total = len(videos)
+    success, failed =
     
