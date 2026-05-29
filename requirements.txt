@@ -4,4 +4,4 @@ pyromod
 aiohttp
 requests
 yt-dlp
-google-generativeai
+google-genai
