@@ -45,10 +45,10 @@ STOP_DOWNLOAD = {}
 async def start_command(client, message: Message):
     await message.reply_text(
         """
-🔥 **Ultra-Advanced TXT Leech Bot**
+🔥 **Ultra-Advanced HTML/TXT Leech Bot**
 
 **Commands:**
-/txt - Upload TXT & Start Leech
+/txt - Upload TXT/HTML File & Start Leech
 /cookies - Upload Cookies File
 /stop - Stop Current Batch
 """
@@ -82,10 +82,10 @@ async def cookies_command(client, message: Message):
 async def txt_command(client, message: Message):
     chat_id = message.chat.id
 
-    ask = await message.reply_text("📂 **TXT file bhejo:**")
+    ask = await message.reply_text("📂 **TXT ya HTML file bhejo:**")
     txt_msg: Message = await bot.listen(chat_id)
     if not txt_msg.document:
-        return await ask.edit("❌ TXT file required! Process cancelled.")
+        return await ask.edit("❌ File required! Process cancelled.")
     txt_path = await txt_msg.download()
 
     await ask.edit("🏷 **Batch Name enter karo:**")
@@ -161,23 +161,38 @@ async def callback_handler(client, callback_query: CallbackQuery):
     await callback_query.message.edit_text(f"✅ **Started Processing in {quality_text} Quality...**")
 
     with open(data["txt_path"], "r", encoding="utf-8") as f:
-        lines = f.readlines()
+        content = f.read()
 
     videos = []
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-        match = re.search(r'(.*?)(https?://\S+)', line)
-        if match:
-            v_title = match.group(1).strip(' :|-')
-            v_url = match.group(2)
-            if not v_title:
-                v_title = "No Title Found"
-            videos.append((v_title, v_url))
+    
+    # 🌟 ADVANCED PARSER: Yeh HTML aur normal TXT dono se links aur titles extract karega
+    # Sabse pehle HTML anchors `<a href="link">Title</a>` check karega
+    html_matches = re.findall(r'href=["\'](https?://[^"\']+)["\'][^>]*>(.*?)</a>', content, re.IGNORECASE)
+    
+    if html_matches:
+        for url, title in html_matches:
+            # HTML tags ko clean karne ke liye (agar title ke andar koi aur tag ho)
+            clean_title = re.sub(r'<[^>]+>', '', title).strip()
+            if not clean_title:
+                clean_title = "No Title Found"
+            videos.append((clean_title, url))
+    else:
+        # Agar HTML format nahi mila, toh saade text (Normal TXT format) ke liye loop chalega
+        lines = content.split('\n')
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            match = re.search(r'(.*?)(https?://\S+)', line)
+            if match:
+                v_title = match.group(1).strip(' :|-')
+                v_url = match.group(2)
+                if not v_title:
+                    v_title = "No Title Found"
+                videos.append((v_title, v_url))
 
     if not videos:
-        return await bot.send_message(chat_id, "❌ **No valid links found in the TXT file.**")
+        return await bot.send_message(chat_id, "❌ **No valid links found in the file.**")
 
     total = len(videos)
     success, failed = 0, 0
@@ -281,4 +296,4 @@ async def callback_handler(client, callback_query: CallbackQuery):
 if __name__ == "__main__":
     print("🚀 Ultra-Advanced Bot Started!")
     bot.run()
-
+            
