@@ -1,6 +1,5 @@
 import os
 import re
-import time
 import asyncio
 import subprocess
 
@@ -17,6 +16,7 @@ from pyrogram.types import (
 # VARIABLES
 # =========================
 
+# API_ID integer format mein hona chahiye
 API_ID = int(os.getenv("API_ID", 0))
 API_HASH = os.getenv("API_HASH")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -35,7 +35,7 @@ bot = Client(
     bot_token=BOT_TOKEN
 )
 
-# Storage Dictionaries
+# User ka data aur stop state store karne ke liye
 USER_DATA = {}
 STOP_DOWNLOAD = {}
 
@@ -192,23 +192,32 @@ async def callback_handler(client, callback_query: CallbackQuery):
             await bot.send_message(chat_id, "🛑 **Batch stopped by user.**")
             break
 
-        # Fallback Title if missing
+        # Check if the URL is a PDF file
+        is_pdf = url.lower().endswith('.pdf') or ".pdf?" in url.lower()
+        
         if vid_title == "No Title Found":
-            vid_title = f"Video {count}"
+            vid_title = f"File {count}"
 
-        filename = f"Video_{count}.mp4"
+        ext = "pdf" if is_pdf else "mp4"
+        file_type = "Document" if is_pdf else "Video"
+        filename = f"File_{count}.{ext}"
+        
         status_msg = await bot.send_message(
             chat_id,
-            f"⬇️ **Downloading Video {count} / {total}**\n\n📌 **Title:** `{vid_title}`\n📺 **Quality:** {quality}p"
+            f"⬇️ **Downloading {file_type} {count} / {total}**\n\n📌 **Title:** `{vid_title}`\n📺 **Quality:** {quality}p (if video)"
         )
 
         try:
             cookies_cmd = f'--cookies {COOKIES_FILE} ' if os.path.exists(COOKIES_FILE) else ''
             
+            # Format fix: Added `/best` as fallback at the end so it doesn't crash on direct links/PDFs
+            format_str = f'-f "bestvideo[height<={quality}]+bestaudio/best[height<={quality}]/best" '
+            merge_cmd = "" if is_pdf else "--merge-output-format mp4 "
+
             cmd = (
                 f'yt-dlp '
-                f'-f "bestvideo[height<={quality}]+bestaudio/best[height<={quality}]" '
-                f'--merge-output-format mp4 '
+                f'{format_str}'
+                f'{merge_cmd}'
                 f'{cookies_cmd}'
                 f'--retries 10 '
                 f'-o "{filename}" '
@@ -225,33 +234,42 @@ async def callback_handler(client, callback_query: CallbackQuery):
                 final_caption = (
                     f"📁 **Batch Name :** {data['batch_name']}\n\n"
                     f"📝 **Topic Name :** {data['topic_name']}\n"
-                    f"🎬 **Video Title :** {vid_title}\n"
-                    f"**[{{🎥}}] Video ID :** {count:02d}\n\n"
+                    f"🎬 **File Title :** {vid_title}\n"
+                    f"**[{{🎥}}] File ID :** {count:02d}\n\n"
                     f"👤 **Extract By :** {data['extract_by']}"
                 )
 
-                video_kwargs = {
-                    "chat_id": chat_id,
-                    "video": filename,
-                    "caption": final_caption,
-                    "supports_streaming": True
-                }
-                
-                if os.path.exists(THUMBNAIL):
-                    video_kwargs["thumb"] = THUMBNAIL
+                # Send PDF as document, Video as video
+                if is_pdf:
+                    await bot.send_document(
+                        chat_id=chat_id,
+                        document=filename,
+                        caption=final_caption,
+                        thumb=THUMBNAIL if os.path.exists(THUMBNAIL) else None
+                    )
+                else:
+                    video_kwargs = {
+                        "chat_id": chat_id,
+                        "video": filename,
+                        "caption": final_caption,
+                        "supports_streaming": True
+                    }
+                    if os.path.exists(THUMBNAIL):
+                        video_kwargs["thumb"] = THUMBNAIL
 
-                await bot.send_video(**video_kwargs)
+                    await bot.send_video(**video_kwargs)
+
                 os.remove(filename)
                 success += 1
                 await status_msg.delete()
 
             else:
                 failed += 1
-                await status_msg.edit(f"❌ **Failed to download Video {count}**")
+                await status_msg.edit(f"❌ **Failed to download {file_type} {count}**")
 
         except Exception as e:
             failed += 1
-            await bot.send_message(chat_id, f"❌ **Error On Video {count}**\n\n`{str(e)}`")
+            await bot.send_message(chat_id, f"❌ **Error On {file_type} {count}**\n\n`{str(e)}`")
 
     # Final Summary
     await bot.send_message(
