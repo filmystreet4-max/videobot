@@ -19,7 +19,7 @@ from pyrogram.types import (
 # JONUKING BRANDING
 # =========================
 OWNER_NAME = "JonuKing"
-CHANNEL_ID = "-1002160747497"  # Aapka personal brand touch!
+CHANNEL_ID = -1002160747497  # Aapka personal brand touch!
 SIGNATURE = f"\n\n⚡ *Powered by | {CHANNEL_ID} x {OWNER_NAME}*"
 
 # =========================
