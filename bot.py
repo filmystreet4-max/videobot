@@ -19,8 +19,9 @@ from pyrogram.types import (
 # JONUKING BRANDING
 # =========================
 OWNER_NAME = "JonuKing"
-CHANNEL_ID = -1002160747497  # Aapka personal brand touch!
-SIGNATURE = f"\n\n⚡ *Powered by | {CHANNEL_ID} x {OWNER_NAME}*"
+CHANNEL_ID = -1002160747497  # ⚠️ YAHAN APNI ASLI -100 WALI CHANNEL ID DAALEIN
+CHANNEL_USERNAME = "@jonu🥰" 
+SIGNATURE = f"\n\n⚡ *Powered by | {CHANNEL_USERNAME} x {OWNER_NAME}*"
 
 # =========================
 # VARIABLES & API KEYS
@@ -243,13 +244,12 @@ async def callback_handler(client, callback_query: CallbackQuery):
                 )
 
                 upload_start = time.time()
+                
                 if is_pdf:
-    # PDF channel mein jayegi
-                await bot.send_document(CHANNEL_ID, document=filename, caption=caption, progress=progress_bar, progress_args=(status_msg, upload_start, "Document"))
+                    await bot.send_document(CHANNEL_ID, document=filename, caption=caption, progress=progress_bar, progress_args=(status_msg, upload_start, "Document"))
                 else:
-    # Video channel mein jayegi
-                await bot.send_video(CHANNEL_ID, video=filename, caption=caption, supports_streaming=True, progress=progress_bar, progress_args=(status_msg, upload_start, "Video"))
-          
+                    await bot.send_video(CHANNEL_ID, video=filename, caption=caption, supports_streaming=True, progress=progress_bar, progress_args=(status_msg, upload_start, "Video"))
+                
                 os.remove(filename)
                 success += 1
                 await status_msg.delete()
