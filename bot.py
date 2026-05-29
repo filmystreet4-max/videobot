@@ -18,9 +18,9 @@ from pyrogram.types import (
 # =========================
 # JONUKING BRANDING
 # =========================
-OWNER_NAME = "JonuKing"
+OWNER_NAME = "Jonu👑King"
 CHANNEL_ID = -1002160747497  # ⚠️ YAHAN APNI ASLI -100 WALI CHANNEL ID DAALEIN
-CHANNEL_USERNAME = "@jonu🥰" 
+CHANNEL_USERNAME = "@jonu🤓" 
 SIGNATURE = f"\n\n⚡ *Powered by | {CHANNEL_USERNAME} x {OWNER_NAME}*"
 
 # =========================
