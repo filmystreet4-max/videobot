@@ -180,5 +180,105 @@ async def callback_handler(client, callback_query: CallbackQuery):
         return await bot.send_message(chat_id, "❌ **No valid links found in the TXT file.**")
 
     total = len(videos)
-    success, failed =
-    
+    success, failed = 0, 0
+
+    for count, (vid_title, url) in enumerate(videos, start=1):
+        if STOP_DOWNLOAD.get(chat_id):
+            await bot.send_message(chat_id, "🛑 **Batch stopped by user.**")
+            break
+
+        is_pdf = url.lower().endswith('.pdf') or ".pdf?" in url.lower()
+        
+        if vid_title == "No Title Found":
+            vid_title = f"File {count}"
+
+        ext = "pdf" if is_pdf else "mp4"
+        file_type = "Document" if is_pdf else "Video"
+        filename = f"File_{count}.{ext}"
+        
+        status_msg = await bot.send_message(
+            chat_id,
+            f"⬇️ **Downloading {file_type} {count} / {total}**\n\n📌 **Title:** `{vid_title}`\n📺 **Quality:** {quality_text} (if video)"
+        )
+
+        try:
+            cookies_cmd = f'--cookies {COOKIES_FILE} ' if os.path.exists(COOKIES_FILE) else ''
+            
+            if quality == "best":
+                format_str = '-f "bestvideo+bestaudio/best" '
+            else:
+                format_str = f'-f "bestvideo[height<={quality}]+bestaudio/best[height<={quality}]/best" '
+                
+            merge_cmd = "" if is_pdf else "--merge-output-format mp4 "
+
+            cmd = (
+                f'yt-dlp '
+                f'{format_str}'
+                f'{merge_cmd}'
+                f'{cookies_cmd}'
+                f'--retries 10 '
+                f'-o "{filename}" '
+                f'"{url}"'
+            )
+
+            process = await asyncio.create_subprocess_shell(cmd)
+            await process.communicate()
+
+            if os.path.exists(filename):
+                await status_msg.edit("⬆️ **Uploading to Telegram...**")
+                
+                final_caption = (
+                    f"📁 **Batch Name :** {data['batch_name']}\n\n"
+                    f"📝 **Topic Name :** {data['topic_name']}\n"
+                    f"🎬 **File Title :** {vid_title}\n"
+                    f"**[{{🎥}}] File ID :** {count:02d}\n\n"
+                    f"👤 **Extract By :** {data['extract_by']}"
+                )
+
+                if is_pdf:
+                    await bot.send_document(
+                        chat_id=chat_id,
+                        document=filename,
+                        caption=final_caption,
+                        thumb=THUMBNAIL if os.path.exists(THUMBNAIL) else None
+                    )
+                else:
+                    video_kwargs = {
+                        "chat_id": chat_id,
+                        "video": filename,
+                        "caption": final_caption,
+                        "supports_streaming": True
+                    }
+                    if os.path.exists(THUMBNAIL):
+                        video_kwargs["thumb"] = THUMBNAIL
+
+                    await bot.send_video(**video_kwargs)
+
+                os.remove(filename)
+                success += 1
+                await status_msg.delete()
+
+            else:
+                failed += 1
+                await status_msg.edit(f"❌ **Failed to download {file_type} {count}**")
+
+        except Exception as e:
+            failed += 1
+            await bot.send_message(chat_id, f"❌ **Error On {file_type} {count}**\n\n`{str(e)}`")
+
+    await bot.send_message(
+        chat_id,
+        f"✅ **Batch Completed!**\n\n"
+        f"📦 **Total :** {total}\n"
+        f"✅ **Success :** {success}\n"
+        f"❌ **Failed :** {failed}"
+    )
+
+# =========================
+# RUN BOT
+# =========================
+
+if __name__ == "__main__":
+    print("🚀 Ultra-Advanced Bot Started!")
+    bot.run()
+
