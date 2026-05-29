@@ -245,11 +245,11 @@ async def callback_handler(client, callback_query: CallbackQuery):
                 upload_start = time.time()
                 if is_pdf:
     # PDF channel mein jayegi
-    await bot.send_document(CHANNEL_ID, document=filename, caption=caption, progress=progress_bar, progress_args=(status_msg, upload_start, "Document"))
-else:
+                await bot.send_document(CHANNEL_ID, document=filename, caption=caption, progress=progress_bar, progress_args=(status_msg, upload_start, "Document"))
+                else:
     # Video channel mein jayegi
-    await bot.send_video(CHANNEL_ID, video=filename, caption=caption, supports_streaming=True, progress=progress_bar, progress_args=(status_msg, upload_start, "Video"))
-    
+                await bot.send_video(CHANNEL_ID, video=filename, caption=caption, supports_streaming=True, progress=progress_bar, progress_args=(status_msg, upload_start, "Video"))
+          
                 os.remove(filename)
                 success += 1
                 await status_msg.delete()
