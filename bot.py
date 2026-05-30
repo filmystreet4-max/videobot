@@ -17,11 +17,11 @@ from pyrogram.types import (
 )
 
 # =========================
-# JONUKING BRANDING
+# JONU👑KING BRANDING
 # =========================
-OWNER_NAME = "darkest🖤King"
+OWNER_NAME = "DARKEST🖤KING"
 CHANNEL_ID = -1002160747497  # ⚠️ Aapki genuine channel id
-CHANNEL_USERNAME = "lion 🦁" 
+CHANNEL_USERNAME = "LION 🦁" 
 SIGNATURE = f"\n\n⚡ *Powered by | {CHANNEL_USERNAME} x {OWNER_NAME}*"
 
 # =========================
