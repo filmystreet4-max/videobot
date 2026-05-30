@@ -17,9 +17,9 @@ from pyrogram.types import (
 )
 
 # =========================
-# JONU👑KING BRANDING
+# JONUKING BRANDING
 # =========================
-OWNER_NAME = "DARKEST🖤KING"
+OWNER_NAME = "GURUJI"
 CHANNEL_ID = -1002160747497  # ⚠️ Aapki genuine channel id
 CHANNEL_USERNAME = "LION 🦁" 
 SIGNATURE = f"\n\n⚡ *Powered by | {CHANNEL_USERNAME} x {OWNER_NAME}*"
@@ -305,7 +305,9 @@ async def callback_handler(client, callback_query: CallbackQuery):
     for count, (vid_title, url) in enumerate(links, start=1):
         if STOP_DOWNLOAD.get(chat_id): break
         
-        vid_title = vid_title if vid_title else f"File {count}"
+        # 🧹 JUNK CLEANER: URL ke aage-peeche se extra quotes, brackets aur spaces saaf karega
+        url = url.strip(' "\'<>():')
+        vid_title = vid_title.strip() if vid_title else f"File {count}"
         
         if url in UPLOADED_HISTORY:
             skipped += 1
@@ -365,4 +367,3 @@ async def callback_handler(client, callback_query: CallbackQuery):
 if __name__ == "__main__":
     clean_workspace() # Core startup cleanup
     bot.run()
-        
