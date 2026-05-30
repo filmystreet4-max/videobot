@@ -223,7 +223,7 @@ async def cookies_command(client, message: Message):
         await ask.edit(f"✅ **Cookies Synced!**\n📊 **Status:** `{health}`")
 
 # =========================
-# TXT COMMAND (WITH QUEUE LOCK)
+# TXT COMMAND (WITH QUEUE LOCK & JUNK FILTER)
 # =========================
 @bot.on_message(filters.command("txt"))
 async def txt_command(client, message: Message):
@@ -247,15 +247,23 @@ async def txt_command(client, message: Message):
 
     batch_name, topic_name = extract_info_via_ai(content)
     
-    links = []
+    raw_links = []
     html_matches = re.findall(r'href=["\'](https?://[^"\']+)["\'][^>]*>(.*?)</a>', content, re.IGNORECASE)
     if html_matches:
-        links = [(re.sub(r'<[^>]+>', '', t).strip(), u) for u, t in html_matches]
+        raw_links = [(re.sub(r'<[^>]+>', '', t).strip(), u) for u, t in html_matches]
     else:
         for line in content.splitlines():
             match = re.search(r'(.*?)(https?://\S+)', line.strip())
             if match:
-                links.append((match.group(1).strip(' :|-'), match.group(2)))
+                raw_links.append((match.group(1).strip(' :|-'), match.group(2)))
+
+    # 🧹 SMART JUNK FILTER (Faltu links ko bahar nikal dega)
+    links = []
+    for title, url in raw_links:
+        low_url = url.lower()
+        if "t.me" in low_url or ".css" in low_url or ".js" in low_url or "whatsapp.com" in low_url or "facebook.com" in low_url:
+            continue # Faltu link skip karo
+        links.append((title, url))
 
     if REVERSE_ORDER:
         links.reverse()
@@ -273,7 +281,7 @@ async def txt_command(client, message: Message):
         f"📦 **Batch Name:** `{batch_name}`\n"
         f"📚 **Topic Name:** `{topic_name}`\n"
         f"📑 **Sequence:** `{seq_state}`\n"
-        f"🔗 **Total Links:** `{len(links)}`\n\n"
+        f"🔗 **Total Clean Links:** `{len(links)}` (Junk removed)\n\n"
         f"📺 **Select Video Quality:**", reply_markup=buttons
     )
 
