@@ -2,6 +2,7 @@ import os
 import re
 import time
 import math
+import shutil
 import asyncio
 import subprocess
 
@@ -18,8 +19,8 @@ from pyrogram.types import (
 # =========================
 # JONUKING BRANDING
 # =========================
-OWNER_NAME = "Jonu👑King"
-CHANNEL_ID = -1002160747497  # ⚠️ YAHAN APNI ASLI CHANNEL ID DAALEIN
+OWNER_NAME = "darkest🖤King"
+CHANNEL_ID = -1002160747497  # ⚠️ Aapki genuine channel id
 CHANNEL_USERNAME = "lion 🦁" 
 SIGNATURE = f"\n\n⚡ *Powered by | {CHANNEL_USERNAME} x {OWNER_NAME}*"
 
@@ -35,7 +36,8 @@ THUMBNAIL = "thumb.jpg"
 COOKIES_FILE = "cookies.txt"
 
 UPLOADED_HISTORY = set()
-REVERSE_ORDER = False # Sequence control variable
+REVERSE_ORDER = False 
+ENGINE_BUSY = False  # Anti-Overload Queue System
 
 # =========================
 # SETUP AI (GEMINI)
@@ -52,7 +54,7 @@ if GEMINI_KEY:
 # BOT START & STORAGE
 # =========================
 bot = Client(
-    "JonuKingAIEngineFinal",
+    "JonuKingAIEngineV3",
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN
@@ -60,6 +62,58 @@ bot = Client(
 
 USER_DATA = {}
 STOP_DOWNLOAD = {}
+
+# =========================
+# PREMIUM ADVANCED TOOLS
+# =========================
+def clean_workspace():
+    """🧹 Auto-Cleanup System: Clears all junk/leftover files"""
+    try:
+        cleaned = 0
+        for file in os.listdir("."):
+            if file.startswith("JonuKing_") or file.endswith(".part") or file.endswith(".ytdl"):
+                os.remove(file)
+                cleaned += 1
+        if cleaned > 0:
+            print(f"🧹 Auto-Cleanup: Removed {cleaned} junk files safely.")
+    except Exception as e:
+        print(f"⚠️ Cleanup error: {e}")
+
+def check_cookies_health():
+    """🍪 Auto-Detect Cookies Expiry System"""
+    if not os.path.exists(COOKIES_FILE):
+        return "❌ Not Found (Upload using /cookies)"
+    try:
+        now = time.time()
+        expired_count = 0
+        total_count = 0
+        with open(COOKIES_FILE, "r", errors="ignore") as f:
+            for line in f:
+                if line.startswith("#") or not line.strip():
+                    continue
+                parts = line.split("\t")
+                if len(parts) >= 5:
+                    total_count += 1
+                    expiry = int(parts[4])
+                    if expiry < now:
+                        expired_count += 1
+        if total_count == 0:
+            return "⚠️ Invalid Format (Re-download file)"
+        if expired_count == total_count:
+            return "❌ Expired! (Need Fresh Cookies)"
+        if expired_count > 0:
+            return f"⚠️ Warning! ({total_count - expired_count} active sessions left)"
+        return "✅ 100% Fresh & Active"
+    except:
+        return "⚠️ Unreadable Format"
+
+def get_free_disk_space():
+    """📊 Real-time Storage Monitor"""
+    try:
+        total, used, free = shutil.disk_usage(".")
+        return f"{free / (1024**3):.2f} GB Khaali"
+    except:
+        return "Unknown"
 
 # =========================
 # PROGRESS BAR
@@ -118,12 +172,22 @@ def generate_caption_via_ai(title, batch, topic, f_type):
 @bot.on_message(filters.command("start"))
 async def start_command(client, message: Message):
     seq_state = "Niche se Upar ⬆️" if REVERSE_ORDER else "Upar se Niche ⬇️"
+    cookie_status = check_cookies_health()
+    disk_space = get_free_disk_space()
+    
     await message.reply_text(
-        f"👑 **Welcome to {OWNER_NAME}'s Master Engine!**\n\n"
-        f"🤖 **AI Status:** `Active`\n"
-        f"🔄 **Skip System:** `Enabled`\n"
-        f"📑 **Current Order:** `{seq_state}`\n\n"
-        "**Commands:**\n/txt - Process Batch\n/thumb - Send a Photo to Set Thumbnail\n/reverse - Change Download Order\n/cookies - Sync Cookies\n/reset_history - Clear Memory"
+        f"👑 **JonuKing Ultimate AI Engine v3**\n\n"
+        f"🤖 **AI Status:** `Active (Gemini 2.5)`\n"
+        f"🍪 **Cookies Health:** `{cookie_status}`\n"
+        f"📊 **Server Disk:** `{disk_space}`\n"
+        f"📑 **Sequence Order:** `{seq_state}`\n\n"
+        "**Master Commands:**\n"
+        "/txt - Process Batch (Video/PDF)\n"
+        "/thumb - Send any photo to set Video Cover\n"
+        "/reverse - Reverse link processing order\n"
+        "/cookies - Sync cookies.txt\n"
+        "/reset_history - Wipe out skip memory\n"
+        "/stop - Emergency Kill"
         f"{SIGNATURE}"
     )
 
@@ -131,43 +195,52 @@ async def start_command(client, message: Message):
 async def reverse_command(client, message: Message):
     global REVERSE_ORDER
     REVERSE_ORDER = not REVERSE_ORDER
-    state = "Niche se Upar (Bottom to Top) ⬆️" if REVERSE_ORDER else "Upar se Niche (Top to Bottom) ⬇️"
-    await message.reply_text(f"🔄 **Sequence Changed!**\n\nAb bot aapki aane wali TXT file ko **{state}** order mein padhega.")
+    state = "Niche se Upar ⬆️" if REVERSE_ORDER else "Upar se Niche ⬇️"
+    await message.reply_text(f"🔄 **Order Changed!**\nAb batch `{state}` padha jayega.")
 
 @bot.on_message(filters.photo & filters.private)
 async def save_thumbnail(client, message: Message):
     await message.download(file_name=THUMBNAIL)
-    await message.reply_text("✅ **Custom Thumbnail Saved!**\n\nAb aage se har video par yehi cover photo lagegi. 🖼️")
+    await message.reply_text("✅ **Custom Thumbnail Saved!** 🖼️")
 
 @bot.on_message(filters.command("stop"))
 async def stop_command(client, message: Message):
     STOP_DOWNLOAD[message.chat.id] = True
-    await message.reply_text("🛑 **Terminating batch!**")
+    await message.reply_text("🛑 **Emergency stop initiated by Master!**")
 
 @bot.on_message(filters.command("reset_history"))
 async def reset_history_command(client, message: Message):
     UPLOADED_HISTORY.clear()
-    await message.reply_text("🔄 **Memory cleared! Sari files shuru se download hongi.**")
+    await message.reply_text("🔄 **Upload memory wiped out successfully!**")
 
 @bot.on_message(filters.command("cookies"))
 async def cookies_command(client, message: Message):
-    ask = await message.reply_text("📂 **Send `cookies.txt`:**")
+    ask = await message.reply_text("📂 **Send fresh `cookies.txt` file:**")
     msg = await bot.listen(message.chat.id)
     if msg.document: 
         await msg.download(file_name=COOKIES_FILE)
-        await ask.edit("✅ **Cookies Synced!**")
+        health = check_cookies_health()
+        await ask.edit(f"✅ **Cookies Synced!**\n📊 **Status:** `{health}`")
 
 # =========================
-# TXT COMMAND
+# TXT COMMAND (WITH QUEUE LOCK)
 # =========================
 @bot.on_message(filters.command("txt"))
 async def txt_command(client, message: Message):
+    global ENGINE_BUSY
     chat_id = message.chat.id
-    ask = await message.reply_text("📂 **Send TXT/HTML File:**")
+    
+    # Smart Queue Check
+    if ENGINE_BUSY:
+        return await message.reply_text("⚠️ **Engine Busy!**\nPehle se ek batch chal raha hai, kripya uske khatam hone ka intezar karein.")
+
+    clean_workspace() # Auto-clean junk before starting
+    
+    ask = await message.reply_text("📂 **Send TXT/HTML Batch File:**")
     txt_msg = await bot.listen(chat_id)
     
-    if not txt_msg.document: return await ask.edit("❌ **Invalid File!**")
-    await ask.edit("🤖 **AI is analyzing...**")
+    if not txt_msg.document: return await ask.edit("❌ **Invalid File Format!**")
+    await ask.edit("🤖 **AI is parsing your batch file...**")
     
     txt_path = await txt_msg.download()
     with open(txt_path, "r", encoding="utf-8") as f: content = f.read()
@@ -184,7 +257,6 @@ async def txt_command(client, message: Message):
             if match:
                 links.append((match.group(1).strip(' :|-'), match.group(2)))
 
-    # Apply Sequence Reversal if Enabled
     if REVERSE_ORDER:
         links.reverse()
 
@@ -197,34 +269,38 @@ async def txt_command(client, message: Message):
     
     seq_state = "⬆️ Bottom to Top" if REVERSE_ORDER else "⬇️ Top to Bottom"
     await ask.edit(
-        f"✨ **Extraction Complete!**\n\n"
-        f"📦 **Batch:** `{batch_name}`\n"
-        f"📚 **Topic:** `{topic_name}`\n"
-        f"📑 **Order:** `{seq_state}`\n"
-        f"🔗 **Total Files Found:** `{len(links)}`\n\n"
-        f"📺 **Choose Quality:**", reply_markup=buttons
+        f"✨ **AI Extraction Complete!**\n\n"
+        f"📦 **Batch Name:** `{batch_name}`\n"
+        f"📚 **Topic Name:** `{topic_name}`\n"
+        f"📑 **Sequence:** `{seq_state}`\n"
+        f"🔗 **Total Links:** `{len(links)}`\n\n"
+        f"📺 **Select Video Quality:**", reply_markup=buttons
     )
 
 # =========================
-# CORE ENGINE
+# CORE PROCESSING ENGINE
 # =========================
 @bot.on_callback_query()
 async def callback_handler(client, callback_query: CallbackQuery):
+    global ENGINE_BUSY
     chat_id = callback_query.message.chat.id
+    
     if callback_query.data == "stop_current_batch":
         STOP_DOWNLOAD[chat_id] = True
-        return await callback_query.answer("🛑 Stopped!", show_alert=True)
+        ENGINE_BUSY = False
+        clean_workspace()
+        return await callback_query.answer("🛑 Processing Stopped!", show_alert=True)
 
     quality = callback_query.data
     data = USER_DATA.get(chat_id)
     STOP_DOWNLOAD[chat_id] = False
+    ENGINE_BUSY = True # Lock Engine
     
-    await callback_query.message.edit_text(f"🚀 **{OWNER_NAME} Engine Initiated...**")
+    await callback_query.message.edit_text(f"🚀 **{OWNER_NAME} Engine Active. Spawning workers...**")
     
     links = data["links"]
     total = len(links)
-    success = 0
-    skipped = 0
+    success, skipped = 0, 0
 
     for count, (vid_title, url) in enumerate(links, start=1):
         if STOP_DOWNLOAD.get(chat_id): break
@@ -264,10 +340,9 @@ async def callback_handler(client, callback_query: CallbackQuery):
                     f"{SIGNATURE}"
                 )
 
-                # Thumbnail logic added here
                 thumb_path = THUMBNAIL if os.path.exists(THUMBNAIL) else None
-
                 upload_start = time.time()
+                
                 if is_pdf:
                     await bot.send_document(CHANNEL_ID, document=filename, caption=caption, progress=progress_bar, progress_args=(status_msg, upload_start, "Document"))
                 else:
@@ -281,9 +356,13 @@ async def callback_handler(client, callback_query: CallbackQuery):
                 await status_msg.edit_text(f"❌ **Failed:** `{vid_title}`")
         except Exception as e:
             await bot.send_message(chat_id, f"❌ **Error:**\n`{str(e)}`")
+            clean_workspace() # Auto-clean on single item crash
 
-    await bot.send_message(chat_id, f"✅ **Batch Completed!**\n📊 Success: `{success}` | Skipped: `{skipped}`\n{SIGNATURE}")
+    ENGINE_BUSY = False # Unlock Engine
+    clean_workspace() # Final batch cleanup
+    await bot.send_message(chat_id, f"✅ **Batch Processing Finished!**\n📊 Success: `{success}` | Skipped: `{skipped}`\n{SIGNATURE}")
 
 if __name__ == "__main__":
+    clean_workspace() # Core startup cleanup
     bot.run()
         
